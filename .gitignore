@@ -1,0 +1,19 @@
+# dependencies
+/node_modules
+/coverage
+
+# production
+
+# misc
+.DS_Store
+.idea
+
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Optional eslint cache
+.eslintcache
+/demo
+/design
+dist
