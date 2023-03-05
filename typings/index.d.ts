@@ -6,7 +6,17 @@ import { AxiosRequestConfig, AxiosResponse } from 'axios';
  */
 export type AlovaAxiosRequestConfig = Omit<
 	AxiosRequestConfig,
-	'url' | 'method' | 'baseURL' | 'headers' | 'params' | 'data' | 'timeout' | 'cancelToken' | 'signal'
+	| 'url'
+	| 'method'
+	| 'baseURL'
+	| 'headers'
+	| 'params'
+	| 'data'
+	| 'timeout'
+	| 'cancelToken'
+	| 'signal'
+	| 'onUploadProgress'
+	| 'onDownloadProgress'
 >;
 
 /**
@@ -23,24 +33,24 @@ export type AxiosRequestAdapter = AlovaRequestAdapter<
 /**
  * axios请求适配器
  */
-export declare const axiosRequestAdapter: AxiosRequestAdapter;
+export declare function axiosRequestAdapter(): AxiosRequestAdapter;
 
 /**
- * 模拟响应适配器，它用于@alova/mock中，让模拟请求时也能返回Taro响应数据兼容的格式
+ * 模拟响应适配器，它用于@alova/mock中，让模拟请求时也能返回axios响应数据兼容的格式
  * @example
  * ```js
- * import AdapterTaro, { taroRequestAdapter } from '@alova/adapter-taro';
+ * import { axiosRequestAdapter, axiosMockResponse } from '@alova/adapter-axios';
  *
  * const mockRequestAdapter = createAlovaMockAdapter([mocks], {
  *		delay: 1000,
- *		onMockResponse: mockResponse,
- *    httpAdapter: taroRequestAdapter
+ *		onMockResponse: axiosMockResponse,
+ *    httpAdapter: axiosRequestAdapter()
  * });
  *	const alovaInst = createAlova({
  *		baseURL: 'http://xxx',
- *		...AdapterTaro({
- *      mockAdapter: process.env.NODE_ENV === 'development' ? mockRequestAdapter : undefined
- *    }),
+ *		requestAdapter: process.env.NODE_ENV === 'development'
+ *			? mockRequestAdapter
+ *			: axiosRequestAdapter(),
  *	});
  * ```
  */

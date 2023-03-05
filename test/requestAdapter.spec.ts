@@ -1,60 +1,49 @@
-import Taro from '@tarojs/taro';
 import { createAlova, useRequest } from 'alova';
 import VueHook from 'alova/vue';
-import { noop } from '../src/helper';
-import AdapterTaro from '../src/index';
-import { onDownloadCall, onRequestCall, onUploadCall, untilCbCalled } from './utils';
+import { AxiosError } from 'axios';
+import { readFileSync } from 'fs';
+import path from 'path';
+import { axiosRequestAdapter } from '../src/index';
+import { Result } from './result.type';
+import { mockServer } from './server';
+import { mockBaseURL, untilCbCalled } from './utils';
 
-jest.mock('@tarojs/taro');
+beforeAll(() => mockServer.listen());
+afterEach(() => mockServer.resetHandlers());
+afterAll(() => mockServer.close());
 describe('request adapter', () => {
-	test('should call uni.request and pass the right args', async () => {
+	test('should call axios and pass the right args', async () => {
 		const alovaInst = createAlova({
-			baseURL: 'http://xxx',
-			beforeRequest(method) {
-				method.config.headers.a = 'a';
-				method.extra = {
-					from: 'beforeRequest'
-				};
-			},
-			responsed(data, m) {
-				expect(m.extra).toStrictEqual({
-					from: 'beforeRequest'
-				});
-				expect(m.config.headers.a).toBe('a');
-
-				const { statusCode, data: subData } = data as Taro.request.SuccessCallbackResult<any>;
-				expect(statusCode).toBe(200);
-				if (subData) {
-					return subData;
-				}
-				return null;
-			},
-			...AdapterTaro(),
-			statesHook: VueHook
+			baseURL: mockBaseURL,
+			requestAdapter: axiosRequestAdapter(),
+			statesHook: VueHook,
+			timeout: 100000,
+			responsed(response) {
+				const { status, data, config } = response;
+				expect(status).toBe(200);
+				expect(config.baseURL).toBe(mockBaseURL);
+				expect(config.url).toBe('/unit-test');
+				expect(config.method).toBe('get');
+				expect(config.timeout).toBe(100000);
+				expect(config.decompress).toBeTruthy();
+				expect(config.xsrfCookieName).toBe('xsrf_cookie');
+				expect(config.xsrfHeaderName).toBe('xsrf_header');
+				expect(config.responseEncoding).toBe('utf8');
+				expect(config.params).toStrictEqual({ a: '1', b: '2' });
+				expect(config.data).toBeUndefined();
+				return data;
+			}
 		});
 
-		interface ResponseData {
-			url: string;
-			method: string;
-			data: any;
-			header: Record<string, any>;
-		}
-		const Get = alovaInst.Get<ResponseData>('/unit-test', {
+		const Get = alovaInst.Get<Result>('/unit-test', {
 			params: {
 				a: '1',
 				b: '2'
 			},
-			enableHttp2: true,
-			enableHttpDNS: true
-		});
-
-		// 验证请求数据
-		const mockFn = jest.fn();
-		onRequestCall(options => {
-			mockFn();
-			expect(options.url).toBe('http://xxx/unit-test?a=1&b=2');
-			expect(options.enableHttp2).toBeTruthy();
-			expect(options.enableHttpDNS).toBeTruthy();
+			responseEncoding: 'utf8',
+			decompress: true,
+			xsrfCookieName: 'xsrf_cookie',
+			xsrfHeaderName: 'xsrf_header'
 		});
 
 		const { loading, data, downloading, error, onSuccess } = useRequest(Get);
@@ -64,36 +53,29 @@ describe('request adapter', () => {
 		expect(error.value).toBeUndefined();
 
 		await untilCbCalled(onSuccess);
-		expect(mockFn).toBeCalledTimes(1);
 		expect(loading.value).toBeFalsy();
-		expect(data.value.url).toBe('http://xxx/unit-test?a=1&b=2');
-		expect(data.value.header).toStrictEqual({ a: 'a' });
+		expect(data.value.code).toBe(200);
+		expect(data.value.data.method).toBe('GET');
+		expect(data.value.data.params).toStrictEqual({
+			a: '1',
+			b: '2'
+		});
+		expect(data.value.data.path).toBe('/unit-test');
 		expect(downloading.value).toEqual({ total: 0, loaded: 0 });
 		expect(error.value).toBeUndefined();
 	});
 
-	test('should call uni.request with post', async () => {
+	test('should call axios with post', async () => {
 		const alovaInst = createAlova({
-			baseURL: 'http://xxx',
-			responsed(data) {
-				const { statusCode, data: subData } = data as Taro.request.SuccessCallbackResult<any>;
-				expect(statusCode).toBe(200);
-				if (subData) {
-					return subData;
-				}
-				return null;
-			},
-			...AdapterTaro(),
-			statesHook: VueHook
+			baseURL: mockBaseURL,
+			requestAdapter: axiosRequestAdapter(),
+			statesHook: VueHook,
+			responsed({ data }) {
+				return data;
+			}
 		});
 
-		interface ResponseData {
-			url: string;
-			method: string;
-			data: any;
-			header: Record<string, any>;
-		}
-		const Post = alovaInst.Post<ResponseData>(
+		const Post = alovaInst.Post<string>(
 			'/unit-test',
 			{ post1: 'p1', post2: 'p2' },
 			{
@@ -101,66 +83,36 @@ describe('request adapter', () => {
 					a: '1',
 					b: '2'
 				},
-				dataType: 'json',
+				responseType: 'text',
 				shareRequest: false
 			}
 		);
 
-		// 验证请求数据
-		const mockFn = jest.fn();
-		onRequestCall(options => {
-			mockFn();
-			expect(options.url).toBe('http://xxx/unit-test?a=1&b=2');
-			expect(options.data).toStrictEqual({
-				post1: 'p1',
-				post2: 'p2'
-			});
-			expect(options.dataType).toBe('json');
-		});
-
 		const { loading, data, onSuccess } = useRequest(Post);
 		await untilCbCalled(onSuccess);
-		expect(mockFn).toBeCalledTimes(1);
 		expect(loading.value).toBeFalsy();
-		expect(data.value.url).toBe('http://xxx/unit-test?a=1&b=2');
-		expect(data.value.header).toStrictEqual({});
-		expect(data.value.data).toStrictEqual({
+
+		const dataObj = JSON.parse(data.value);
+		expect(dataObj.code).toBe(200);
+		expect(dataObj.data.method).toBe('POST');
+		expect(dataObj.data.data).toStrictEqual({
 			post1: 'p1',
 			post2: 'p2'
 		});
+		expect(dataObj.data.path).toBe('/unit-test');
 	});
 
-	test('request fail with uni.request', async () => {
+	test('request fail with axios', async () => {
 		const alovaInst = createAlova({
-			baseURL: 'http://xxx',
-			responsed: {
-				onSuccess(data) {
-					const { data: subData } = data as Taro.request.SuccessCallbackResult<any>;
-					if (subData) {
-						return subData;
-					}
-					return null;
-				},
-				onError(error) {
-					expect(error.message).toBe('mock fail');
-					throw error;
-				}
-			},
-			...AdapterTaro(),
-			statesHook: VueHook
+			baseURL: mockBaseURL,
+			requestAdapter: axiosRequestAdapter(),
+			statesHook: VueHook,
+			responsed({ data }) {
+				return data;
+			}
 		});
 
-		interface ResponseData {
-			url: string;
-			method: string;
-			data: any;
-			header: Record<string, any>;
-		}
-		const Get = alovaInst.Get<ResponseData>('/unit-test');
-
-		// 模拟请求失败
-		onRequestCall(noop, new Error('mock fail'));
-
+		const Get = alovaInst.Get<Result>('/unit-test-error');
 		const { loading, data, downloading, error, onError } = useRequest(Get);
 		expect(loading.value).toBeTruthy();
 		expect(data.value).toBeUndefined();
@@ -170,198 +122,94 @@ describe('request adapter', () => {
 		const { error: errRaw } = await untilCbCalled(onError);
 		expect(loading.value).toBeFalsy();
 		expect(data.value).toBeUndefined();
-		expect(error.value).toBe(errRaw);
-		expect(error.value?.message).toBe('mock fail');
+		expect(error.value).toBeInstanceOf(AxiosError);
+		expect(errRaw).toBeInstanceOf(AxiosError);
+		expect(error.value?.message).toMatch(/Network Error/);
 	});
 
-	test('should cancel request when call `task.abort` returned by uni.request', async () => {
+	test('should cancel request when call `controller.abort`', async () => {
 		const alovaInst = createAlova({
-			baseURL: 'http://xxx',
-			responsed(data) {
-				const { data: subData } = data as Taro.request.SuccessCallbackResult<any>;
-				if (subData) {
-					return subData;
-				}
-				return null;
-			},
-			...AdapterTaro(),
-			statesHook: VueHook
+			baseURL: mockBaseURL,
+			requestAdapter: axiosRequestAdapter(),
+			statesHook: VueHook,
+			responsed({ data }) {
+				return data;
+			}
 		});
 
-		interface ResponseData {
-			url: string;
-			method: string;
-			data: any;
-			header: Record<string, any>;
-		}
-		const Get = alovaInst.Get<ResponseData>('/unit-test');
-
+		const Get = alovaInst.Get<Result>('/unit-test');
 		const { loading, data, downloading, error, abort, onError } = useRequest(Get);
 		expect(loading.value).toBeTruthy();
 		expect(data.value).toBeUndefined();
 		expect(downloading.value).toEqual({ total: 0, loaded: 0 });
 		expect(error.value).toBeUndefined();
 
-		// 过100毫秒后中断请求
-		await untilCbCalled(setTimeout, 100);
 		abort();
-
 		await untilCbCalled(onError);
 		expect(loading.value).toBeFalsy();
 		expect(data.value).toBeUndefined();
 		expect(downloading.value).toEqual({ total: 0, loaded: 0 });
-		expect(error.value?.message).toBe('request:fail abort');
+		expect(error.value?.message).toBe('canceled');
 	});
 
-	test('should call uni.uploadFile and pass the right args', async () => {
+	test('should upload file and pass the right args', async () => {
 		const alovaInst = createAlova({
-			baseURL: 'http://xxx',
-			responsed(data) {
-				const { statusCode, data: subData } = data as Taro.uploadFile.SuccessCallbackResult;
-				expect(statusCode).toBe(200);
-				if (subData) {
-					return subData;
-				}
-				return null;
-			},
-			...AdapterTaro(),
-			statesHook: VueHook
+			baseURL: mockBaseURL,
+			requestAdapter: axiosRequestAdapter(),
+			statesHook: VueHook,
+			responsed({ data }) {
+				return data;
+			}
 		});
 
-		const Post = alovaInst.Post<string>(
-			'/unit-test',
-			{
-				name: 'file_name',
-				filePath: 'http://file_path',
-				f1: 'f1',
-				f2: 'f2'
-			},
-			{
-				requestType: 'upload',
-				withCredentials: true,
-				enableUpload: true
-			}
-		);
-
-		// 验证请求数据
-		const mockFn = jest.fn();
-		onUploadCall(options => {
-			mockFn();
-			expect(options.url).toBe('http://xxx/unit-test');
-			expect(options.formData).toStrictEqual({
-				f1: 'f1',
-				f2: 'f2'
-			});
-			expect(options.name).toBe('file_name');
-			expect(options.filePath).toBe('http://file_path');
-			expect(options.withCredentials).toBeTruthy();
+		// 使用formData上传文件
+		const formData = new FormData();
+		formData.append('f1', 'f1');
+		formData.append('f2', 'f2');
+		const imageFile = new File([readFileSync(path.resolve(__dirname, './image.jpg'))], 'file', {
+			type: 'image/jpeg'
+		});
+		formData.append('file', imageFile);
+		// const headers = {
+		// 	'Content-Type': 'multipart/form-data',
+		// 	'Content-Length': imageFile.byteLength
+		// };
+		const Post = alovaInst.Post<Result<string>>('/unit-test', formData, {
+			withCredentials: true
+			// enableUpload: true
 		});
 
 		const { loading, data, uploading, downloading, error, onSuccess } = useRequest(Post);
 		await untilCbCalled(onSuccess);
-		expect(mockFn).toBeCalledTimes(1);
 		expect(loading.value).toBeFalsy();
-		expect(data.value).toStrictEqual({ header: {}, url: 'http://xxx/unit-test' });
-		expect(uploading.value).toEqual({ total: 200, loaded: 200 });
+		expect(data.value.code).toBe(200);
+		expect(data.value.data.method).toBe('POST');
+		expect(data.value.data.path).toBe('/unit-test');
+		expect(uploading.value).toEqual({ total: 0, loaded: 0 });
 		expect(downloading.value).toEqual({ total: 0, loaded: 0 });
 		expect(error.value).toBeUndefined();
 	});
 
-	test('should cancel request when call `task.abort` returned by uni.uploadFile', async () => {
+	test('should download file and pass the right args', async () => {
 		const alovaInst = createAlova({
-			baseURL: 'http://xxx',
-			responsed(data) {
-				const { statusCode, data: subData } = data as Taro.uploadFile.SuccessCallbackResult;
-				expect(statusCode).toBe(200);
-				if (subData) {
-					return subData;
-				}
-				return null;
-			},
-			...AdapterTaro(),
-			statesHook: VueHook
-		});
-
-		const Post = alovaInst.Post<string>(
-			'/unit-test',
-			{
-				name: 'file_name',
-				filePath: 'http://file_path',
-				f1: 'f1',
-				f2: 'f2'
-			},
-			{
-				requestType: 'upload',
-				withCredentials: true,
-				enableUpload: true
+			baseURL: mockBaseURL,
+			requestAdapter: axiosRequestAdapter(),
+			statesHook: VueHook,
+			responsed({ data }) {
+				return data;
 			}
-		);
-
-		const { loading, data, uploading, error, onError, abort } = useRequest(Post);
-		await untilCbCalled(setTimeout, 150);
-		abort();
-
-		await untilCbCalled(onError);
-		expect(loading.value).toBeFalsy();
-		expect(data.value).toBeUndefined();
-		expect(uploading.value).toEqual({ total: 200, loaded: 40 });
-		expect(error.value?.message).toBe('uploadFile:fail abort');
-	});
-
-	test('should call uni.downloadFile and pass the right args', async () => {
-		const alovaInst = createAlova({
-			baseURL: 'http://xxx',
-			...AdapterTaro(),
-			statesHook: VueHook
 		});
 
-		const Get = alovaInst.Get<Taro.downloadFile.FileSuccessCallbackResult>('/unit-test', {
-			requestType: 'download',
-			enableDownload: true,
-			filePath: 'http://file_path'
-		});
-
-		// 验证请求数据
-		const mockFn = jest.fn();
-		onDownloadCall(options => {
-			mockFn();
-			expect(options.url).toBe('http://xxx/unit-test');
-			expect(options.filePath).toBe('http://file_path');
+		const Get = alovaInst.Get('/unit-test-download', {
+			enableDownload: true
 		});
 
 		const { loading, data, uploading, downloading, error, onSuccess } = useRequest(Get);
 		await untilCbCalled(onSuccess);
-		expect(mockFn).toBeCalledTimes(1);
 		expect(loading.value).toBeFalsy();
-		expect(data.value.statusCode).toBe(200);
-		expect(data.value.tempFilePath).toBe('test_temp_path');
-		expect(data.value.filePath).toBe('test_path');
+		expect(data.value).toBeInstanceOf(Buffer);
 		expect(uploading.value).toEqual({ total: 0, loaded: 0 });
-		expect(downloading.value).toEqual({ total: 200, loaded: 200 });
+		expect(downloading.value).toEqual({ total: 3273178, loaded: 3273178 });
 		expect(error.value).toBeUndefined();
-	});
-
-	test('should cancel request when call `task.abort` returned by uni.downloadFile', async () => {
-		const alovaInst = createAlova({
-			baseURL: 'http://xxx',
-			...AdapterTaro(),
-			statesHook: VueHook
-		});
-
-		const Get = alovaInst.Get<Taro.downloadFile.FileSuccessCallbackResult>('/unit-test', {
-			requestType: 'download',
-			enableDownload: true,
-			filePath: 'http://file_path'
-		});
-
-		const { loading, data, downloading, error, onError, abort } = useRequest(Get);
-		await untilCbCalled(setTimeout, 150);
-		abort();
-
-		await untilCbCalled(onError);
-		expect(loading.value).toBeFalsy();
-		expect(data.value).toBeUndefined();
-		expect(downloading.value).toEqual({ total: 200, loaded: 40 });
-		expect(error.value?.message).toBe('downloadFile:fail abort');
 	});
 });

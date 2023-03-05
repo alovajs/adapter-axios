@@ -1,6 +1,10 @@
 import { createAlovaMockAdapter, defineMock } from '@alova/mock';
 import { createAlova, invalidateCache } from 'alova';
-import AdapterTaro, { taroMockResponse, taroRequestAdapter } from '../src/index';
+import vueHook from 'alova/vue';
+import { AxiosResponse } from 'axios';
+import { readFileSync } from 'fs';
+import path from 'path';
+import { axiosMockResponse, axiosRequestAdapter } from '../src/index';
 
 const mocks = defineMock({
 	'/unit-test': () => {
@@ -30,40 +34,39 @@ const mocks = defineMock({
 // 模拟数据请求适配器
 const mockAdapter = createAlovaMockAdapter([mocks], {
 	delay: 100,
-	httpAdapter: taroRequestAdapter,
-	onMockResponse: taroMockResponse
+	httpAdapter: axiosRequestAdapter(),
+	onMockResponse: axiosMockResponse
 });
 
 const alovaInst = createAlova({
 	baseURL: 'http://xxx',
-	...AdapterTaro({
-		mockRequest: mockAdapter
-	})
+	statesHook: vueHook,
+	requestAdapter: mockAdapter
 });
-interface ResponseData {
-	url: string;
-	method: string;
-	data: any;
-	header: Record<string, any>;
-}
 
 // 每个用例运行前清除缓存，避免相互影响
 beforeEach(() => invalidateCache());
 describe('mock response adapter', () => {
 	test('request success', async () => {
-		const Get = alovaInst.Get<ResponseData>('/unit-test', {});
+		const Get = alovaInst.Get<AxiosResponse<{ id: number }>>('/unit-test');
 		const result = await Get.send();
-		expect(result).toStrictEqual({ data: { id: 1 }, statusCode: 200, header: {}, cookies: [], errMsg: 'ok' });
+		expect(result.status).toBe(200);
+		expect(result.statusText).toBe('ok');
+		expect(result.data).toStrictEqual({ id: 1 });
+		expect(!!result.config).toBeTruthy();
 	});
 
 	test('request error', async () => {
-		const Get = alovaInst.Get<ResponseData>('/unit-test-error', {});
+		const Get = alovaInst.Get<any>('/unit-test-error', {});
 		const result = await Get.send();
-		expect(result).toStrictEqual({ data: undefined, statusCode: 500, header: {}, cookies: [], errMsg: 'server error' });
+		expect(result.status).toBe(500);
+		expect(result.statusText).toBe('server error');
+		expect(result.data).toBeUndefined();
+		expect(!!result.config).toBeTruthy();
 	});
 
 	test('request fail', async () => {
-		const Get = alovaInst.Get<ResponseData>('/unit-test-fail', {});
+		const Get = alovaInst.Get<never>('/unit-test-fail', {});
 		try {
 			await Get.send();
 		} catch (error: any) {
@@ -72,39 +75,32 @@ describe('mock response adapter', () => {
 	});
 
 	test('uploadFile', async () => {
-		const Post = alovaInst.Post<ResponseData>(
-			'/unit-test-upload',
-			{
-				name: 'abc',
-				filePath: 'http://xxx'
-			},
-			{
-				requestType: 'upload'
-			}
-		);
-		const result = await Post.send();
-		expect(result).toStrictEqual({
-			data: {
-				uploadPath: 'http://upload-xxxxx'
-			},
-			header: {},
-			errMsg: 'ok',
-			statusCode: 200
+		// 使用formData上传文件
+		const formData = new FormData();
+		formData.append('f1', 'f1');
+		formData.append('f2', 'f2');
+		const imageFile = new File([readFileSync(path.resolve(__dirname, './image.jpg'))], 'file', {
+			type: 'image/jpeg'
 		});
+		formData.append('file', imageFile);
+		const Post = alovaInst.Post<AxiosResponse<{ uploadPath: string }>>('/unit-test-upload', formData, {
+			withCredentials: true
+		});
+		const result = await Post.send();
+		expect(result.status).toBe(200);
+		expect(result.statusText).toBe('ok');
+		expect(result.data).toStrictEqual({
+			uploadPath: 'http://upload-xxxxx'
+		});
+		expect(!!result.config).toBeTruthy();
 	});
 
 	test('downloadFile', async () => {
-		const Get = alovaInst.Get<ResponseData>('/unit-test-download', {
-			requestType: 'download',
-			filePath: 'http://xxx'
-		});
+		const Get = alovaInst.Get<AxiosResponse<string>>('/unit-test-download');
 		const result = await Get.send();
-		expect(result).toStrictEqual({
-			tempFilePath: 'http://download-xxxxx',
-			statusCode: 200,
-			errMsg: 'ok',
-			filePath: 'http://xxx',
-			header: {}
-		});
+		expect(result.status).toBe(200);
+		expect(result.statusText).toBe('ok');
+		expect(result.data).toBe('http://download-xxxxx');
+		expect(!!result.config).toBeTruthy();
 	});
 });

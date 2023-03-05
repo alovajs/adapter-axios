@@ -1,48 +1,27 @@
 import { MockResponse } from '@alova/mock';
-import { TaroConfig } from '../typings';
+import { AxiosHeaders, AxiosResponse } from 'axios';
+import { AlovaAxiosRequestConfig } from '../typings';
 
-type TaroResponse =
-	| Taro.uploadFile.SuccessCallbackResult
-	| Taro.downloadFile.FileSuccessCallbackResult
-	| Taro.request.SuccessCallbackResult<any>;
-const mockResponseHandler: MockResponse<TaroConfig, TaroResponse, Taro.request.SuccessCallbackResult<any>['header']> = (
+const mockResponseHandler: MockResponse<AlovaAxiosRequestConfig, AxiosResponse, AxiosResponse['headers']> = (
 	{ status, statusText, body },
 	_,
 	currentMethod
 ) => {
-	const { requestType } = currentMethod.config;
 	const responseHeaders = {};
-	if (requestType === 'upload') {
-		return {
-			response: {
-				data: body,
-				statusCode: status,
-				errMsg: statusText,
-				header: responseHeaders
-			},
-			headers: responseHeaders
-		};
-	} else if (requestType === 'download') {
-		const isSuccess = status === 200;
-		return {
-			response: {
-				filePath: currentMethod.config.filePath || '',
-				tempFilePath: isSuccess ? (body as any) : '',
-				statusCode: status,
-				errMsg: statusText,
-				header: responseHeaders
-			},
-			headers: responseHeaders
-		};
-	}
-
+	const { config } = currentMethod;
 	return {
 		response: {
 			data: body,
-			statusCode: status,
-			header: responseHeaders,
-			errMsg: statusText,
-			cookies: []
+			status,
+			statusText,
+			headers: responseHeaders,
+			config: {
+				baseURL: currentMethod.baseURL,
+				url: currentMethod.url,
+				data: currentMethod.data,
+				...config,
+				headers: new AxiosHeaders(config.headers)
+			}
 		},
 		headers: responseHeaders
 	};
