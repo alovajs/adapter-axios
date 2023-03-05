@@ -1,3 +1,4 @@
+import { MockError } from '@alova/mock';
 import { AlovaRequestAdapter } from 'alova';
 import { AxiosRequestConfig, AxiosResponse } from 'axios';
 
@@ -43,8 +44,8 @@ export declare function axiosRequestAdapter(): AxiosRequestAdapter;
  *
  * const mockRequestAdapter = createAlovaMockAdapter([mocks], {
  *		delay: 1000,
- *		onMockResponse: axiosMockResponse,
- *    httpAdapter: axiosRequestAdapter()
+ *    httpAdapter: axiosRequestAdapter(),
+ * 		...axiosMockResponse
  * });
  *	const alovaInst = createAlova({
  *		baseURL: 'http://xxx',
@@ -54,4 +55,7 @@ export declare function axiosRequestAdapter(): AxiosRequestAdapter;
  *	});
  * ```
  */
-export declare const axiosMockResponse: MockResponse<AlovaAxiosRequestConfig, AxiosResponse, AxiosResponse['headers']>;
+export declare const axiosMockResponse: {
+	onMockResponse: MockResponse<AlovaAxiosRequestConfig, AxiosResponse, AxiosResponse['headers']>;
+	onMockError: MockError;
+};

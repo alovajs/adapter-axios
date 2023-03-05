@@ -1,7 +1,7 @@
 import { createAlovaMockAdapter, defineMock } from '@alova/mock';
 import { createAlova, invalidateCache } from 'alova';
 import vueHook from 'alova/vue';
-import { AxiosResponse } from 'axios';
+import { AxiosError, AxiosResponse } from 'axios';
 import { readFileSync } from 'fs';
 import path from 'path';
 import { axiosMockResponse, axiosRequestAdapter } from '../src/index';
@@ -35,7 +35,7 @@ const mocks = defineMock({
 const mockAdapter = createAlovaMockAdapter([mocks], {
 	delay: 100,
 	httpAdapter: axiosRequestAdapter(),
-	onMockResponse: axiosMockResponse
+	...axiosMockResponse
 });
 
 const alovaInst = createAlova({
@@ -58,11 +58,14 @@ describe('mock response adapter', () => {
 
 	test('request error', async () => {
 		const Get = alovaInst.Get<any>('/unit-test-error', {});
-		const result = await Get.send();
-		expect(result.status).toBe(500);
-		expect(result.statusText).toBe('server error');
-		expect(result.data).toBeUndefined();
-		expect(!!result.config).toBeTruthy();
+		try {
+			await Get.send();
+		} catch (error: any) {
+			expect(error).toBeInstanceOf(AxiosError);
+			expect(error.message).toBe('server error');
+			expect(error.data).toBeUndefined();
+			expect(!!error.config).toBeTruthy();
+		}
 	});
 
 	test('request fail', async () => {
@@ -70,6 +73,7 @@ describe('mock response adapter', () => {
 		try {
 			await Get.send();
 		} catch (error: any) {
+			expect(error).toBeInstanceOf(AxiosError);
 			expect(error.message).toBe('network error');
 		}
 	});

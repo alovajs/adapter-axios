@@ -1,6 +1,7 @@
-import { MockResponse } from '@alova/mock';
-import { AxiosHeaders, AxiosResponse } from 'axios';
+import { MockError, MockResponse } from '@alova/mock';
+import { AxiosError, AxiosHeaders, AxiosResponse } from 'axios';
 import { AlovaAxiosRequestConfig } from '../typings';
+import { undefinedValue } from './helper';
 
 const mockResponseHandler: MockResponse<AlovaAxiosRequestConfig, AxiosResponse, AxiosResponse['headers']> = (
 	{ status, statusText, body },
@@ -9,21 +10,43 @@ const mockResponseHandler: MockResponse<AlovaAxiosRequestConfig, AxiosResponse, 
 ) => {
 	const responseHeaders = {};
 	const { config } = currentMethod;
+	const axiosConfig = {
+		baseURL: currentMethod.baseURL,
+		url: currentMethod.url,
+		data: currentMethod.data,
+		...config,
+		headers: new AxiosHeaders(config.headers)
+	};
+	const axiosResponse = {
+		data: body,
+		status,
+		statusText,
+		headers: responseHeaders,
+		config: axiosConfig
+	};
+
+	// 状态大于等于400时抛出错误
+	if (status >= 400) {
+		throw new AxiosError(statusText, status.toString(), axiosConfig, undefinedValue, axiosResponse);
+	}
 	return {
-		response: {
-			data: body,
-			status,
-			statusText,
-			headers: responseHeaders,
-			config: {
-				baseURL: currentMethod.baseURL,
-				url: currentMethod.url,
-				data: currentMethod.data,
-				...config,
-				headers: new AxiosHeaders(config.headers)
-			}
-		},
+		response: axiosResponse,
 		headers: responseHeaders
 	};
 };
-export default mockResponseHandler;
+
+const mockErrorHandler: MockError = (error, currentMethod) => {
+	const { config } = currentMethod;
+	return new AxiosError(error.message, error.name, {
+		baseURL: currentMethod.baseURL,
+		url: currentMethod.url,
+		data: currentMethod.data,
+		...config,
+		headers: new AxiosHeaders(config.headers)
+	});
+};
+
+export default {
+	onMockResponse: mockResponseHandler,
+	onMockError: mockErrorHandler
+};

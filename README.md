@@ -1,40 +1,46 @@
-# @alova/adapter-taro
+# @alova/adapter-axios
 
-alova 的 taro 适配器
+alova 的 axios 适配器
 
-[![npm](https://img.shields.io/npm/v/@alova/adapter-taro)](https://www.npmjs.com/package/@alova/adapter-taro)
-[![build](https://github.com/alovajs/adapter-taro/actions/workflows/main.yml/badge.svg?branch=main)](https://github.com/alovajs/adapter-taro/actions/workflows/main.yml)
-[![coverage status](https://coveralls.io/repos/github/alovajs/adapter-taro/badge.svg?branch=main)](https://coveralls.io/github/alovajs/adapter-taro?branch=main)
+[![npm](https://img.shields.io/npm/v/@alova/adapter-axios)](https://www.npmjs.com/package/@alova/adapter-axios)
+[![build](https://github.com/alovajs/adapter-axios/actions/workflows/main.yml/badge.svg?branch=main)](https://github.com/alovajs/adapter-axios/actions/workflows/main.yml)
+[![coverage status](https://coveralls.io/repos/github/alovajs/adapter-axios/badge.svg?branch=main)](https://coveralls.io/github/alovajs/adapter-axios?branch=main)
 ![typescript](https://badgen.net/badge/icon/typescript?icon=typescript&label)
 ![license](https://img.shields.io/badge/license-MIT-blue.svg)
 
-[官网](https://alova.js.org/extension/alova-adapter-taro) | [核心库 alova](https://github.com/alovajs/alova)
+[官网](https://alova.js.org/extension/alova-adapter-axios) | [核心库 alova](https://github.com/alovajs/alova)
 
 ## 使用方法
 
 ### 创建 alova
 
-调用 **AdapterTaro** 将返回*请求适配器*、_存储适配器_，以及*ReactHook*，因此你不再需要设置这三个项，使用方法完全一致。
+使用 **axiosRequestAdapter** 作为 alova 的请求适配器。
 
 ```javascript
 import { createAlova } from 'alova';
-import AdapterTaro from '@alova/adapter-taro';
+import VueHook from 'alova/vue';
+import { axiosRequestAdapter } from '@alova/adapter-axios';
 
 const alovaInst = createAlova(
   baseURL: 'https://api.alovajs.org',
-  ...AdapterTaro()
+  statesHook: VueHook,
+  // highlight-start
+  requestAdapter: axiosResponseAdapter(),
+  // highlight-end
 );
 ```
 
 ### 请求
 
-请求的使用方法与 web 环境中使用完全一致。已经完全兼容`Taro.request`，你可以在创建 method 实例的*config*中指定`Taro.request`支持的[全部配置项](https://taro-docs.jd.com/docs/apis/network/request/)
+请求的使用方法与 web 环境中使用完全一致。已经完全兼容**axios**，你可以在创建 method 实例的*config*中指定`axios`支持的[全部配置项](https://axios-http.com/docs/req_config)
 
 ```jsx
 const list = () =>
   alovaInst.Get('/list', {
-    // 设置的参数将传递给Taro.request
-    enableHttp2: true
+    // 设置的参数将传递给axios
+    paramsSerializer: params => {
+      return Qs.stringify(params, {arrayFormat: 'brackets'})
+    },
   });
 
 const App = () => {
