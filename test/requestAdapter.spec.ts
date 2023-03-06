@@ -213,7 +213,7 @@ describe('request adapter', () => {
 		expect(error.value).toBeUndefined();
 	});
 
-	test.only('should download file and pass the right args', async () => {
+	test('should download file and pass the right args', async () => {
 		const alovaInst = createAlova({
 			baseURL: mockBaseURL,
 			requestAdapter: axiosRequestAdapter(),
@@ -229,10 +229,9 @@ describe('request adapter', () => {
 		});
 
 		const { loading, data, uploading, downloading, error, onSuccess } = useRequest(Get);
-		const event = await untilCbCalled(onSuccess);
-		console.log(event);
+		await untilCbCalled(onSuccess);
 		expect(loading.value).toBeFalsy();
-		expect(data.value).toBeInstanceOf(Buffer);
+		expect(data.value).toBeInstanceOf(Blob);
 		expect(uploading.value).toEqual({ total: 0, loaded: 0 });
 		expect(downloading.value).toEqual({ total: 3273178, loaded: 3273178 });
 		expect(error.value).toBeUndefined();
