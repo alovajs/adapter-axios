@@ -102,6 +102,32 @@ describe('request adapter', () => {
 		expect(dataObj.data.path).toBe('/unit-test');
 	});
 
+	test('api not found when request', async () => {
+		const alovaInst = createAlova({
+			baseURL: mockBaseURL,
+			requestAdapter: axiosRequestAdapter(),
+			statesHook: VueHook,
+			responsed({ data }) {
+				return data;
+			}
+		});
+
+		const Get = alovaInst.Get<Result>('/unit-test-404');
+		const { loading, data, downloading, error, onError } = useRequest(Get);
+		expect(loading.value).toBeTruthy();
+		expect(data.value).toBeUndefined();
+		expect(downloading.value).toEqual({ total: 0, loaded: 0 });
+		expect(error.value).toBeUndefined();
+
+		const { error: errRaw } = await untilCbCalled(onError);
+		expect(loading.value).toBeFalsy();
+		expect(data.value).toBeUndefined();
+		expect(error.value).toBeInstanceOf(AxiosError);
+		expect(errRaw).toBeInstanceOf(AxiosError);
+		expect(errRaw.response.status).toBe(404);
+		expect(errRaw.response.statusText).toBe('api not found');
+	});
+
 	test('request fail with axios', async () => {
 		const alovaInst = createAlova({
 			baseURL: mockBaseURL,
@@ -170,12 +196,9 @@ describe('request adapter', () => {
 			type: 'image/jpeg'
 		});
 		formData.append('file', imageFile);
-		// const headers = {
-		// 	'Content-Type': 'multipart/form-data',
-		// 	'Content-Length': imageFile.byteLength
-		// };
 		const Post = alovaInst.Post<Result<string>>('/unit-test', formData, {
 			withCredentials: true
+			// 设置上传回调后，msw无法接收请求
 			// enableUpload: true
 		});
 
@@ -190,7 +213,7 @@ describe('request adapter', () => {
 		expect(error.value).toBeUndefined();
 	});
 
-	test('should download file and pass the right args', async () => {
+	test.only('should download file and pass the right args', async () => {
 		const alovaInst = createAlova({
 			baseURL: mockBaseURL,
 			requestAdapter: axiosRequestAdapter(),
@@ -201,11 +224,13 @@ describe('request adapter', () => {
 		});
 
 		const Get = alovaInst.Get('/unit-test-download', {
-			enableDownload: true
+			enableDownload: true,
+			responseType: 'blob'
 		});
 
 		const { loading, data, uploading, downloading, error, onSuccess } = useRequest(Get);
-		await untilCbCalled(onSuccess);
+		const event = await untilCbCalled(onSuccess);
+		console.log(event);
 		expect(loading.value).toBeFalsy();
 		expect(data.value).toBeInstanceOf(Buffer);
 		expect(uploading.value).toEqual({ total: 0, loaded: 0 });

@@ -8,13 +8,15 @@ alova 的 axios 适配器
 ![typescript](https://badgen.net/badge/icon/typescript?icon=typescript&label)
 ![license](https://img.shields.io/badge/license-MIT-blue.svg)
 
+<p>English | <a href="./README.zh-CN.md">📑中文</a></p>
+
 [官网](https://alova.js.org/extension/alova-adapter-axios) | [核心库 alova](https://github.com/alovajs/alova)
 
-## 使用方法
+## Instructions
 
-### 创建 alova
+### create alova
 
-使用 **axiosRequestAdapter** 作为 alova 的请求适配器。
+Use **axiosRequestAdapter** as request adapter for alova.
 
 ```javascript
 import { createAlova } from 'alova';
@@ -22,151 +24,120 @@ import VueHook from 'alova/vue';
 import { axiosRequestAdapter } from '@alova/adapter-axios';
 
 const alovaInst = createAlova(
-  baseURL: 'https://api.alovajs.org',
-  statesHook: VueHook,
-  // highlight-start
-  requestAdapter: axiosResponseAdapter(),
-  // highlight-end
+   baseURL: 'https://api.alovajs.org',
+   statesHook: VueHook,
+   // highlight-start
+   requestAdapter: axiosResponseAdapter(),
+   // highlight-end
 );
 ```
 
-### 请求
+### Request
 
-请求的使用方法与 web 环境中使用完全一致。已经完全兼容**axios**，你可以在创建 method 实例的*config*中指定`axios`支持的[全部配置项](https://axios-http.com/docs/req_config)
+The usage method of the request is exactly the same as that used in the web environment. Already fully compatible with **axios**, you can specify [all configuration items] supported by `axios` in _config_ of method instance creation (https://axios-http.com/docs/req_config)
 
-```jsx
+> Take Vue as an example
+
+```html
+<tempate>
+<div v-if="loading">Loading...</div>
+<div>The request data is: {{ data }}</div>
+</template>
+
+<script setup>
 const list = () =>
-  alovaInst.Get('/list', {
-    // 设置的参数将传递给axios
-    paramsSerializer: params => {
-      return Qs.stringify(params, {arrayFormat: 'brackets'})
-    },
-  });
+alovaInst. Get('/list', {
+// The set parameters will be passed to axios
+paramsSerializer: params => {
+return Qs. stringify(params, { arrayFormat: 'brackets' });
+}
+});
+const { loading, data } = useRequest(list);
+</script>
+```
 
-const App = () => {
-  const { loading, data } = useRequest(list);
+### Upload
 
-  return (
-    { loading ? <View>加载中...</View> : null }
-    <View>请求数据为：{ JSON.stringify(data) }</View>
-  )
+Use `FormData` to upload files, and this `FormData` instance will be passed to axios, which is consistent with the usage of axios upload files.
+
+```javascript
+const uploadFile = imageFile => {
+	const formData = new FormData();
+	formData.append('file', imageFile);
+	return alovaInst.Post('/uploadImg', formData, {
+		// Start upload progress
+		enableUpload: true
+	});
+};
+
+const {
+	loading,
+	data,
+	uploading,
+	send: sendUpload
+} = useRequest(uploadFile, {
+	immediate: false
+});
+
+// Picture selection event callback
+const handleImageChoose = ({ target }) => {
+	sendUpload(target.files[0]);
 };
 ```
 
-### 上传
+### download
 
-在 method 实例的*config*中设置`requestType: 'upload'`时表示上传文件，请求适配器将会调用`Taro.uploadFile`，上传的文件数据放在 method 实例的 data 中，你需要在 data 中指定`name`和`filePath`，这 2 个参数将传到`Taro.uploadFile`中，同时，你还可以在 data 中指定这 2 个参数外的其他参数，请求适配器会将它们传入到`formData`参数中。
+Point the request url to the file address to download, you can also enable the download progress by setting `enableDownload` to true.
 
-同样的，已经完全兼容`Taro.uploadFile`，你可以在创建 method 实例的*config*中指定`Taro.uploadFile`支持的[全部配置项](https://taro-docs.jd.com/docs/apis/network/upload/uploadFile)，如果还有额外的参数需要设置，请在 method 实例的*config*中指定。
+```javascript
+const downloadFile = () =>
+	alovaInst.Get('/bigImage. jpg', {
+		// Start download progress
+		enableDownload: true,
+		responseType: 'blob'
+	});
 
-```jsx
-const uploadFile = (name, filePath, formData) =>
-  alovaInst.Post(
-    '/uploadImg',
-    {
-      name,
-      filePath,
-
-      // 额外数据将传入uni.uploadFile的formData中
-      ...formData
-    },
-    {
-      // 设置请求方式为上传，适配器内将调用uni.uploadFile
-      requestType: 'upload',
-
-      // 开启上传进度
-      enableUpload: true
-    }
-  );
-
-const App = () => {
-  const { loading, data, uploading, send } = useRequest(uploadFile, {
-    immediate: false
-  });
-
-  const handleImageChoose = () => {
-    Taro.chooseImage({
-      success: chooseImageRes => {
-        const tempFilePaths = chooseImageRes.tempFilePaths;
-        send('fileName', tempFilePaths[0], {
-          extra1: 'a',
-          extra2: 'b'
-        });
-      }
-    });
-  };
-
-  return (
-    { loading ? <View>上传中...</View> : null }
-    <View>上传进度：{ uploading.loaded }/{ uploading.total }</View>
-    <Button onClick={handleImageChoose}>上传图片</Button>
-    {/* ... */}
-  )
-}
+const { loading, data, downloading, send, onSuccess } = useRequest(downloadFile, {
+	immediate: false
+});
+onSuccess(({ data: imageBlob }) => {
+	// download image
+	const anchor = document.createElement('a');
+	anchor.href = URL.createObjectURL(blob);
+	anchor.download = 'image.jpg';
+	anchor.click();
+	URL.revokeObjectURL(anchor.href);
+});
+const handleImageDownload = () => {
+	send();
+};
 ```
 
-### 下载
+## Mock request adapter compatible
 
-在 method 实例的*config*中设置`requestType: 'download'`时表示下载文件，请求适配器将会调用`Taro.downloadFile`。
-
-同样的，已经完全兼容`Taro.downloadFile`，你可以在创建 method 实例的*config*中指定`Taro.downloadFile`支持的[全部配置项](https://taro-docs.jd.com/docs/apis/network/download/downloadFile)，如果还有额外的参数需要设置，请在 method 实例的*config*中指定。
-
-```jsx
-const downloadFile = filePath =>
-  alovaInst.Get('/bigImage.jpg', {
-    // 设置请求方式为下载，适配器内将调用uni.downloadFile
-    requestType: 'download',
-    filePath,
-
-    // 开启下载进度
-    enableDownload: true
-  });
-
-const App = () => {
-  const { loading, data, downloading, send } = useRequest(downloadFile, {
-    immediate: false
-  });
-  const handleImageDownload = () => {
-    send('file_save_path');
-  };
-
-  return (
-    { loading ? <View>下载中...</View> : null }
-    <View>下载进度：{ downloading.loaded }/{ downloading.total }</View>
-    <Button onClick={handleImageDownload}>下载图片</Button>
-    {/* ... */}
-  );
-}
-```
-
-## 模拟请求适配器兼容
-
-在使用 Taro 开发应用时，我们仍然可能需要用到模拟请求，只是默认情况下，[模拟请求适配器(@alova/mock)](https://alova.js.org/extension/alova-mock)的响应数据是一个`Response`实例，即默认兼容`GlobalFetch`请求适配器，当在 Taro 环境下使用时，我们需要让模拟请求适配器的响应数据是兼容 Taro 适配器的，因此你需要使用**@alova/adapter-taro**包中导出的`taroMockResponse`作为响应适配器。
+When developing applications, we may still need to use simulated requests. Only by default, the response data of [Mock Request Adapter (@alova/mock)](/extension/alova-mock) is a `Response` instance, which is compatible with the `GlobalFetch` request adapter by default. When using the axios adapter, we The response data of the mock request adapter needs to be compatible with **AxiosResponse**, and the error instance is **AxiosError**, so you need to use `axiosMockResponse` exported from the **@alova/adapter-axios** package as the response adapter .
 
 ```javascript
 import { defineMock, createAlovaMockAdapter } from '@alova/mock';
-import AdapterTaro, { taroRequestAdapter, taroMockResponse } from '@alova/adapter-taro';
+import { axiosRequestAdapter, axiosMockResponse } from '@alova/adapter-axios';
 
 const mocks = defineMock({
-	// ...
+	//...
 });
 
-// 模拟数据请求适配器
+// mock data request adapter
 export default createAlovaMockAdapter([mocks], {
-	// 指定taro请求适配器后，未匹配模拟接口的请求将使用这个适配器发送请求
-	httpAdapter: taroRequestAdapter,
+	// After specifying the taro request adapter, requests that do not match the simulated interface will use this adapter to send requests
+	httpAdapter: axiosRequestAdapter(),
 
-	//  模拟响应适配器，指定后响应数据将转换为taro兼容的数据格式
-	onMockResponse: taroMockResponse
+	// axiosMockResponse contains onMockResponse and onMockError
+	// Used to convert mock data to AxiosResponse and AxiosError compatible format
+	...axiosMockResponse
 });
 
 export const alovaInst = createAlova({
-	baseURL: 'https://api.alovajs.org',
-	timeout: 5000,
-	...AdapterTaro({
-		// 通过环境变量控制是否使用模拟请求适配器
-		mockRequest: process.env.NODE_ENV === 'development' ? mockAdapter : undefined
-	})
-	// ...
+	//...
+	// Control whether to use the simulated request adapter through environment variables
+	requestAdapter: process.env.NODE_ENV === 'development' ? mockAdapter : axiosRequestAdapter()
 });
 ```

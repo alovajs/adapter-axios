@@ -27,7 +27,7 @@ const mockResponseHandler: MockResponse<AlovaAxiosRequestConfig, AxiosResponse, 
 
 	// 状态大于等于400时抛出错误
 	if (status >= 400) {
-		throw new AxiosError(statusText, status.toString(), axiosConfig, undefinedValue, axiosResponse);
+		throw new AxiosError(statusText, 'ERR_BAD_REQUEST', axiosConfig, undefinedValue, axiosResponse);
 	}
 	return {
 		response: axiosResponse,
@@ -37,7 +37,7 @@ const mockResponseHandler: MockResponse<AlovaAxiosRequestConfig, AxiosResponse, 
 
 const mockErrorHandler: MockError = (error, currentMethod) => {
 	const { config } = currentMethod;
-	return new AxiosError(error.message, error.name, {
+	return new AxiosError(error.message, 'ERR_NETWORK', {
 		baseURL: currentMethod.baseURL,
 		url: currentMethod.url,
 		data: currentMethod.data,
