@@ -30,8 +30,9 @@
 		"build:umd": "cross-env NODE_ENV=development rollup -c ./config/rollup.config.umd.js",
 		"build:umd.min": "cross-env NODE_ENV=production rollup -c ./config/rollup.config.umd.js",
 		"build": "npm run clean && npm run build:esm && npm run build:umd && npm run build:umd.min",
-		"release": "npm publish",
-		"coveralls": "npm run test:coverage && coveralls < coverage/lcov.info"
+		"release": "semantic-release --branches main",
+		"coveralls": "npm run test:coverage && coveralls < coverage/lcov.info",
+		"commit": "git add . && git-cz && git push"
 	},
 	"publishConfig": {
 		"access": "public"
@@ -64,8 +65,10 @@
 		"alova": "^2.0.4",
 		"axios": "^1.3.4",
 		"babel-jest": "^29.2.2",
+		"commitizen": "^4.3.0",
 		"coveralls": "^3.1.1",
 		"cross-env": "5.2.0",
+		"cz-conventional-changelog": "^3.3.0",
 		"eslint": "^8.35.0",
 		"eslint-config-prettier": "^8.6.0",
 		"eslint-plugin-prettier": "^4.2.1",
@@ -79,11 +82,17 @@
 		"rollup": "^2.74.1",
 		"rollup-plugin-terser": "^7.0.2",
 		"rollup-plugin-typescript2": "^0.31.2",
+		"semantic-release": "^21.0.1",
 		"ts-jest": "^29.0.3",
 		"ts-jest-mock-import-meta": "^1.0.0",
 		"ts-node": "^10.9.1",
 		"tslib": "^2.4.0",
 		"typescript": "^4.7.2",
 		"vue": "^3.2.47"
+	},
+	"config": {
+		"commitizen": {
+			"path": "./node_modules/cz-conventional-changelog"
+		}
 	}
 }
