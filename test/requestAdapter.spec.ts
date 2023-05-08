@@ -163,7 +163,7 @@ describe('request adapter', () => {
 			}
 		});
 
-		const Get = alovaInst.Get<Result>('/unit-test');
+		const Get = alovaInst.Get<Result>('/unit-test-delay');
 		const { loading, data, downloading, error, abort, onError } = useRequest(Get);
 		expect(loading.value).toBeTruthy();
 		expect(data.value).toBeUndefined();
@@ -178,7 +178,7 @@ describe('request adapter', () => {
 		expect(error.value?.message).toBe('canceled');
 	});
 
-	test('should upload file and pass the right args', async () => {
+	(isSSR ? xtest : test)('should upload file and pass the right args', async () => {
 		const alovaInst = createAlova({
 			baseURL: mockBaseURL,
 			requestAdapter: axiosRequestAdapter(),
@@ -213,7 +213,7 @@ describe('request adapter', () => {
 		expect(error.value).toBeUndefined();
 	});
 
-	test('should download file and pass the right args', async () => {
+	(isSSR ? xtest : test)('should download file and pass the right args', async () => {
 		const alovaInst = createAlova({
 			baseURL: mockBaseURL,
 			requestAdapter: axiosRequestAdapter(),

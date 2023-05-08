@@ -1,7 +1,7 @@
 /*
  * @Date: 2020-04-09 11:06:01
  * @LastEditors: JOU(wx: huzhen555)
- * @LastEditTime: 2022-11-30 21:15:34
+ * @LastEditTime: 2023-05-08 23:00:03
  */
 var typescript = require('rollup-plugin-typescript2');
 var { readFileSync } = require('fs');
@@ -19,11 +19,12 @@ const getCompiler = (
 ) => typescript(opt);
 exports.getCompiler = getCompiler;
 
-const pkg = JSON.parse(readFileSync('package.json').toString() || '{}');
-const { version, author, homepage } = pkg;
+const pkg = require('../package.json');
+const version = process.env.VERSION || pkg.version;
+const author = pkg.author;
 const repository = pkg.repository.url.replace('git', 'https').replace('.git', '');
 exports.banner = `/**
-  * ${pkg.name} ${version} (${homepage})
+  * ${pkg.name} ${version} (${pkg.homepage})
   * Copyright ${new Date().getFullYear()} ${author}. All Rights Reserved
   * Licensed under MIT (${repository}/blob/master/LICENSE)
   */

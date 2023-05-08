@@ -1,7 +1,7 @@
 // rollup.config.js
 // ES output
 var { nodeResolve } = require('@rollup/plugin-node-resolve');
-var config = require('./rollup.js');
+var config = require('./rollup.cjs');
 var paths = config.compilePath;
 var moduleType = 'esm';
 
