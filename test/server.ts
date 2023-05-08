@@ -36,16 +36,22 @@ const result = (code: number, req: any, res: any, ctx: any, hasBody = false, ext
 
 export const mockServer = setupServer(
 	rest.get(mockBaseURL + '/unit-test', (req, res, ctx) => result(200, req, res, ctx)),
+	rest.get(mockBaseURL + '/unit-test-delay', async (req, res, ctx) => {
+		await new Promise(resolve => {
+			setTimeout(resolve, 10);
+		});
+		return result(200, req, res, ctx);
+	}),
 	rest.get(mockBaseURL + '/unit-test-404', (_, res, ctx) => {
 		return res(ctx.status(404, 'api not found'));
 	}),
 	rest.get(mockBaseURL + '/unit-test-error', () => {
-		throw new Error('server error');
+		throw new Error('Network Error');
 	}),
 	rest.post(mockBaseURL + '/unit-test', (req, res, ctx) => {
 		return result(200, req, res, ctx, true);
 	}),
-	rest.get(mockBaseURL + '/unit-test-download', (req, res, ctx) => {
+	rest.get(mockBaseURL + '/unit-test-download', (_, res, ctx) => {
 		// Read the image from the file system using the "fs" module.
 		const imageBuffer = readFileSync(path.resolve(__dirname, './image.jpg'));
 		return res(

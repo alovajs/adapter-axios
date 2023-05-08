@@ -5,7 +5,7 @@
  */
 // rollup.config.js
 // commonjs
-var config = require('./rollup.js');
+var config = require('./rollup.cjs');
 var module = process.argv.pop().replace('--', '') || 'core';
 var paths = config.compilePath;
 var moduleType = 'cjs';

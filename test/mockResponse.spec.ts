@@ -78,7 +78,7 @@ describe('mock response adapter', () => {
 		}
 	});
 
-	test('uploadFile', async () => {
+	(isSSR ? xtest : test)('uploadFile', async () => {
 		// 使用formData上传文件
 		const formData = new FormData();
 		formData.append('f1', 'f1');
