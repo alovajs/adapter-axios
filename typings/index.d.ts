@@ -10,7 +10,6 @@ export type AlovaAxiosRequestConfig = Omit<
 	| 'url'
 	| 'method'
 	| 'baseURL'
-	| 'headers'
 	| 'params'
 	| 'data'
 	| 'timeout'
