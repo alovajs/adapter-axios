@@ -1,12 +1,12 @@
 import { createAlova, useRequest } from 'alova';
 import VueHook from 'alova/vue';
-import { AxiosError } from 'axios';
+import axios, { AxiosError } from 'axios';
 import { readFileSync } from 'fs';
 import path from 'path';
-import { axiosRequestAdapter } from '../src/index';
-import { Result } from './result.type';
-import { mockServer } from './server';
-import { mockBaseURL, untilCbCalled } from './utils';
+import { axiosRequestAdapter } from '../../src';
+import { mockServer } from '../mockServer';
+import { Result } from '../result.type';
+import { mockBaseURL, untilCbCalled } from '../utils';
 
 beforeAll(() => mockServer.listen());
 afterEach(() => mockServer.resetHandlers());
@@ -178,7 +178,7 @@ describe('request adapter', () => {
 		expect(error.value?.message).toBe('canceled');
 	});
 
-	(isSSR ? xtest : test)('should upload file and pass the right args', async () => {
+	test('should upload file and pass the right args', async () => {
 		const alovaInst = createAlova({
 			baseURL: mockBaseURL,
 			requestAdapter: axiosRequestAdapter(),
@@ -192,7 +192,7 @@ describe('request adapter', () => {
 		const formData = new FormData();
 		formData.append('f1', 'f1');
 		formData.append('f2', 'f2');
-		const imageFile = new File([readFileSync(path.resolve(__dirname, './image.jpg'))], 'file', {
+		const imageFile = new File([readFileSync(path.resolve(__dirname, '../image.jpg'))], 'file', {
 			type: 'image/jpeg'
 		});
 		formData.append('file', imageFile);
@@ -213,7 +213,7 @@ describe('request adapter', () => {
 		expect(error.value).toBeUndefined();
 	});
 
-	(isSSR ? xtest : test)('should download file and pass the right args', async () => {
+	test('should download file and pass the right args', async () => {
 		const alovaInst = createAlova({
 			baseURL: mockBaseURL,
 			requestAdapter: axiosRequestAdapter(),
@@ -234,6 +234,69 @@ describe('request adapter', () => {
 		expect(data.value).toBeInstanceOf(Blob);
 		expect(uploading.value).toEqual({ total: 0, loaded: 0 });
 		expect(downloading.value).toEqual({ total: 3273178, loaded: 3273178 });
+		expect(error.value).toBeUndefined();
+	});
+
+	test('should request with custom axios instance', async () => {
+		const newAxiosInst = axios.create({
+			baseURL: mockBaseURL,
+			timeout: 5000
+		});
+
+		const axiosRequestFn = jest.fn();
+		const axiosResponseFn = jest.fn();
+		newAxiosInst.interceptors.request.use(config => {
+			axiosRequestFn();
+			return config;
+		});
+		newAxiosInst.interceptors.response.use(response => {
+			axiosResponseFn();
+			return response.data;
+		});
+
+		const alovaInst = createAlova({
+			requestAdapter: axiosRequestAdapter({
+				axios: newAxiosInst
+			}),
+			statesHook: VueHook,
+			// 比axios的request钩子更早触发
+			beforeRequest() {
+				expect(axiosRequestFn).not.toBeCalled();
+			},
+			// 比axios的response钩子更迟触发
+			responsed(res) {
+				expect(axiosResponseFn).toBeCalled();
+				return res;
+			}
+		});
+
+		const Get = alovaInst.Get<Result>('/unit-test', {
+			params: {
+				a: '1',
+				b: '2'
+			},
+			responseEncoding: 'utf8',
+			decompress: true,
+			xsrfCookieName: 'xsrf_cookie',
+			xsrfHeaderName: 'xsrf_header'
+		});
+
+		const { loading, data, downloading, error, onSuccess } = useRequest(Get);
+		expect(loading.value).toBeTruthy();
+		expect(data.value).toBeUndefined();
+		expect(downloading.value).toEqual({ total: 0, loaded: 0 });
+		expect(error.value).toBeUndefined();
+
+		await untilCbCalled(onSuccess);
+		expect(loading.value).toBeFalsy();
+		expect(data.value.code).toBe(200);
+		expect(data.value.data.method).toBe('GET');
+		expect(data.value.data.params).toStrictEqual({
+			a: '1',
+			b: '2'
+		});
+		expect(data.value.data.path).toBe('/unit-test');
+		expect(downloading.value).toEqual({ total: 0, loaded: 0 });
 		expect(error.value).toBeUndefined();
 	});
 });

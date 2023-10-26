@@ -4,7 +4,7 @@ import vueHook from 'alova/vue';
 import { AxiosError, AxiosResponse } from 'axios';
 import { readFileSync } from 'fs';
 import path from 'path';
-import { axiosMockResponse, axiosRequestAdapter } from '../src/index';
+import { axiosMockResponse, axiosRequestAdapter } from '../../src/index';
 
 const mocks = defineMock({
 	'/unit-test': () => {
@@ -78,12 +78,12 @@ describe('mock response adapter', () => {
 		}
 	});
 
-	(isSSR ? xtest : test)('uploadFile', async () => {
+	test('uploadFile', async () => {
 		// 使用formData上传文件
 		const formData = new FormData();
 		formData.append('f1', 'f1');
 		formData.append('f2', 'f2');
-		const imageFile = new File([readFileSync(path.resolve(__dirname, './image.jpg'))], 'file', {
+		const imageFile = new File([readFileSync(path.resolve(__dirname, '../image.jpg'))], 'file', {
 			type: 'image/jpeg'
 		});
 		formData.append('file', imageFile);
