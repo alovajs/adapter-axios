@@ -140,11 +140,7 @@ export default {
 	// The test environment that will be used for testing
 	testEnvironment: 'jsdom',
 
-	testMatch: [
-		'**/?(*.)+(spec|test).[tj]s?(x)'
-		// '**/test/requestAdapter.spec.ts(x)?'
-		// '**/test/mockResponse.spec.ts(x)?'
-	],
+	testMatch: ['**/test/browser/**/*.[jt]s?(x)'],
 
 	// An array of regexp pattern strings that are matched against all test paths, matched tests are skipped
 	testPathIgnorePatterns: [
@@ -163,37 +159,11 @@ export default {
 
 	// A map from regular expressions to paths to transformers
 	transform: {
-		'\\.(j|t)sx?$': [
-			'ts-jest',
-			// mock import.meta, see https://www.npmjs.com/package/ts-jest-mock-import-meta
-			{
-				diagnostics: {
-					ignoreCodes: [1343]
-				},
-				astTransformers: {
-					// 转换import.meta
-					before: [
-						{
-							path: 'node_modules/ts-jest-mock-import-meta',
-							options: {
-								metaObjectReplacement: {
-									url: 'https://xxx',
-									env: {
-										PROD: false,
-										DEV: true
-									},
-									status: 2
-								}
-							}
-						}
-					]
-				}
-			}
-		]
+		'\\.(j|t)sx?$': 'ts-jest'
 	},
 
 	// An array of regexp pattern strings that are matched against all source file paths, matched files will skip transformation
-	transformIgnorePatterns: ['/node_modules/(?!alova)']
+	transformIgnorePatterns: ['/node_modules/(?!(alova|@alova/mock))']
 
 	// An array of regexp pattern strings that are matched against all modules before the module loader will automatically return a mock for them
 	// unmockedModulePathPatterns: undefined,

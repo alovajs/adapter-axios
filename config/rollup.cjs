@@ -3,9 +3,7 @@
  * @LastEditors: JOU(wx: huzhen555)
  * @LastEditTime: 2023-05-08 23:00:03
  */
-var typescript = require('rollup-plugin-typescript2');
-var { readFileSync } = require('fs');
-
+const typescript = require('rollup-plugin-typescript2');
 const getCompiler = (
 	opt = {
 		// objectHashIgnoreUnknownHack: true,
