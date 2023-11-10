@@ -1,6 +1,6 @@
 import { MockError } from '@alova/mock';
 import { AlovaRequestAdapter } from 'alova';
-import { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
+import { AxiosInstance, AxiosRequestConfig, AxiosResponse, AxiosResponseHeaders } from 'axios';
 
 /**
  * axios请求配置参数
@@ -27,7 +27,7 @@ export type AxiosRequestAdapter = AlovaRequestAdapter<
 	any,
 	AlovaAxiosRequestConfig,
 	AxiosResponse,
-	AxiosResponse['headers']
+	AxiosResponseHeaders
 >;
 
 interface AdapterCreateOptions {
