@@ -1,9 +1,9 @@
 import { MockError, MockResponse } from '@alova/mock';
-import { AxiosError, AxiosHeaders, AxiosResponse } from 'axios';
+import { AxiosError, AxiosHeaders, AxiosResponse, AxiosResponseHeaders } from 'axios';
 import { AlovaAxiosRequestConfig } from '../typings';
 import { undefinedValue } from './helper';
 
-const mockResponseHandler: MockResponse<AlovaAxiosRequestConfig, AxiosResponse, AxiosResponse['headers']> = (
+const mockResponseHandler: MockResponse<AlovaAxiosRequestConfig, AxiosResponse, AxiosResponseHeaders> = (
 	{ status, statusText, body },
 	_,
 	currentMethod
@@ -31,7 +31,7 @@ const mockResponseHandler: MockResponse<AlovaAxiosRequestConfig, AxiosResponse, 
 	}
 	return {
 		response: axiosResponse,
-		headers: responseHeaders
+		headers: responseHeaders as AxiosResponseHeaders
 	};
 };
 

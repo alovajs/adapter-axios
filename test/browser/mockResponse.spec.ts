@@ -4,7 +4,7 @@ import vueHook from 'alova/vue';
 import { AxiosError, AxiosResponse } from 'axios';
 import { readFileSync } from 'fs';
 import path from 'path';
-import { axiosMockResponse, axiosRequestAdapter } from '../../src/index';
+import { axiosMockResponse, axiosRequestAdapter } from '../../src';
 
 const mocks = defineMock({
 	'/unit-test': () => {
