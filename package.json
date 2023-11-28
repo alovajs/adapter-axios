@@ -3,8 +3,7 @@
 	"version": "1.2.1",
 	"description": "axios adapter for alova.js",
 	"homepage": "https://alova.js.org",
-	"main": "dist/alova-adapter-axios.umd.min.js",
-	"jsnext:main": "dist/alova-adapter-axios.esm.js",
+	"main": "dist/alova-adapter-axios.esm.js",
 	"module": "dist/alova-adapter-axios.esm.js",
 	"types": "typings/index.d.ts",
 	"type": "module",
@@ -21,6 +20,8 @@
 		"svelte",
 		"axios"
 	],
+	"jsdelivr": "dist/alova-adapter-axios.umd.min.js",
+	"unpkg": "dist/alova-adapter-axios.umd.min.js",
 	"scripts": {
 		"clean": "rimraf ./dist",
 		"test:browser": "jest",
