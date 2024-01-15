@@ -1,7 +1,7 @@
 import { ProgressUpdater } from 'alova';
 import axios, { AxiosResponseHeaders } from 'axios';
 import { AdapterCreateOptions, AxiosRequestAdapter } from '../typings';
-import { noop, undefinedValue } from './helper';
+import { noop } from './helper';
 
 /**
  * axios请求适配器
@@ -22,17 +22,13 @@ export default function requestAdapter(options: AdapterCreateOptions = {}) {
 				data: method.data,
 				signal: controller.signal,
 				// `onUploadProgress` 允许为上传处理进度事件
-				onUploadProgress: config.enableUpload
-					? event => {
-							uploadHandler(event.loaded, event.total || 1);
-					  }
-					: undefinedValue,
+				onUploadProgress: event => {
+					uploadHandler(event.loaded, event.total || 1);
+				},
 				// `onDownloadProgress` 允许为下载处理进度事件
-				onDownloadProgress: config.enableDownload
-					? event => {
-							downloadHandler(event.loaded, event.total || 1);
-					  }
-					: undefinedValue,
+				onDownloadProgress: event => {
+					downloadHandler(event.loaded, event.total || 1);
+				},
 				...config
 			});
 
