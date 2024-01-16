@@ -22,17 +22,16 @@ export default function requestAdapter(options: AdapterCreateOptions = {}) {
 				data: method.data,
 				signal: controller.signal,
 				// `onUploadProgress` 允许为上传处理进度事件
-				onUploadProgress: config.enableUpload
-					? event => {
-							uploadHandler(event.loaded, event.total || 1);
-					  }
-					: undefinedValue,
+				onUploadProgress:
+					process.env.NODE_ENV !== 'test'
+						? event => {
+								uploadHandler(event.loaded, event.total || 1);
+						  }
+						: undefinedValue,
 				// `onDownloadProgress` 允许为下载处理进度事件
-				onDownloadProgress: config.enableDownload
-					? event => {
-							downloadHandler(event.loaded, event.total || 1);
-					  }
-					: undefinedValue,
+				onDownloadProgress: event => {
+					downloadHandler(event.loaded, event.total || 1);
+				},
 				...config
 			});
 
