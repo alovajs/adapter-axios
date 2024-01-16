@@ -32,6 +32,6 @@ const compilePath = (exports.compilePath = {
 	external: ['alova', 'axios'],
 	packageName: 'AlovaAdapterAxios',
 	input: 'src/index.ts',
-	output: suffix => `dist/alova-adapter-axios.${suffix}.js`
+	output: (suffix, ext = 'js') => `dist/alova-adapter-axios.${suffix}.${ext}`
 });
 exports.external = compilePath.external;
