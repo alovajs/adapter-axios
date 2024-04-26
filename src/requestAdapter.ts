@@ -25,12 +25,12 @@ export default function requestAdapter(options: AdapterCreateOptions = {}) {
 				onUploadProgress:
 					process.env.NODE_ENV !== 'test'
 						? event => {
-								uploadHandler(event.loaded, event.total || 1);
+								uploadHandler(event.total || 1, event.loaded);
 						  }
 						: undefinedValue,
 				// `onDownloadProgress` 允许为下载处理进度事件
 				onDownloadProgress: event => {
-					downloadHandler(event.loaded, event.total || 1);
+					downloadHandler(event.total || 1, event.loaded);
 				},
 				...config
 			});
